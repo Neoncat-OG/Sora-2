@@ -31,7 +31,14 @@ class ServiceManager: ObservableObject {
     let servicesDirectory: URL
     private let defaultServiceURLs = [
         "https://raw.githubusercontent.com/cranci1/Sora-Modules/refs/heads/main/Emby/Emby.json",
-        "https://raw.githubusercontent.com/cranci1/Sora-Modules/refs/heads/main/JellyFin/jellyfin.json"
+        "https://raw.githubusercontent.com/cranci1/Sora-Modules/refs/heads/main/JellyFin/jellyfin.json",
+        "https://raw.githubusercontent.com/xibrox/sora-movie-module/refs/heads/main/vixsrc/vixsrc.json",
+        "https://raw.githubusercontent.com/50n50/sources/refs/heads/main/videasy/videasy.json",
+        "https://raw.githubusercontent.com/xibrox/sora-movie-module/refs/heads/main/rive/rive.json",
+        "https://raw.githubusercontent.com/xibrox/sora-movie-module/refs/heads/main/net3lix/net3lix.json",
+        "https://raw.githubusercontent.com/xibrox/sora-movie-module/refs/heads/main/sunduq/sunduq.json",
+        "https://raw.githubusercontent.com/xibrox/sora-movie-module/refs/heads/main/flickystream/flickystream.json",
+        "https://raw.githubusercontent.com/xibrox/sora-movie-module/refs/heads/main/xprime/xprime.json"
     ]
     
     private init() {
