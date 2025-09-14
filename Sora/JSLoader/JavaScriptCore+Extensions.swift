@@ -80,7 +80,7 @@ extension JSContext {
             guard let url = URL(string: urlString) else {
                 Logger.shared.log("Invalid URL", type: "Error")
                 DispatchQueue.main.async {
-                    reject.call(withArguments: ["Invalid URL"])
+                    resolve.call(withArguments: ["Invalid URL"])
                 }
                 return
             }
@@ -134,8 +134,6 @@ extension JSContext {
             var request = URLRequest(url: url)
             request.httpMethod = httpMethod
             
-            Logger.shared.log("FetchV2 Request: URL=\(url), Method=\(httpMethod), Body=\(body ?? "nil"), Encoding=\(encoding ?? "utf-8")", type: "Debug")
-            
             func getEncoding(from encodingString: String?) -> String.Encoding {
                 guard let encodingString = encodingString?.lowercased() else {
                     return .utf8
@@ -167,7 +165,7 @@ extension JSContext {
             if httpMethod == "GET" && !bodyIsEmpty {
                 Logger.shared.log("GET request must not have a body", type: "Error")
                 DispatchQueue.main.async {
-                    reject.call(withArguments: ["GET request must not have a body"])
+                    resolve.call(withArguments: ["GET request must not have a body"])
                 }
                 return
             }

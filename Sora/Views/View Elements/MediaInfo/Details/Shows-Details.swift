@@ -57,6 +57,10 @@ struct TVShowSeasonsSection: View {
                         DetailRow(title: "Rating", value: String(format: "%.1f/10", tvShow.voteAverage))
                     }
                     
+                    if let ageRating = getAgeRating(from: tvShow.contentRatings) {
+                        DetailRow(title: "Age Rating", value: ageRating)
+                    }
+                    
                     if let firstAirDate = tvShow.firstAirDate, !firstAirDate.isEmpty {
                         DetailRow(title: "First aired", value: "\(firstAirDate)")
                     }
@@ -126,7 +130,8 @@ struct TVShowSeasonsSection: View {
                 mediaTitle: tvShow?.name ?? "Unknown Show",
                 originalTitle: romajiTitle,
                 isMovie: false,
-                selectedEpisode: selectedEpisodeForSearch
+                selectedEpisode: selectedEpisodeForSearch,
+                tmdbId: tvShow?.id ?? 0
             )
         }
         .alert("No Active Services", isPresented: $showingNoServicesAlert) {
@@ -220,16 +225,16 @@ struct TVShowSeasonsSection: View {
                                         .clipShape(RoundedRectangle(cornerRadius: 8))
                                         .overlay(
                                             RoundedRectangle(cornerRadius: 8)
-                                                .stroke(selectedSeason?.id == season.id ? Color.blue : Color.clear, lineWidth: 2)
+                                                .stroke(selectedSeason?.id == season.id ? Color.accentColor : Color.clear, lineWidth: 2)
                                         )
                                     
                                     Text(season.name)
                                         .font(.caption)
                                         .fontWeight(.medium)
-                                        .lineLimit(2)
+                                        .lineLimit(1)
                                         .multilineTextAlignment(.center)
                                         .frame(width: 80)
-                                        .foregroundColor(selectedSeason?.id == season.id ? .blue : .primary)
+                                        .foregroundColor(selectedSeason?.id == season.id ? .accentColor : .primary)
                                 }
                             }
                             .buttonStyle(PlainButtonStyle())
@@ -278,20 +283,26 @@ struct TVShowSeasonsSection: View {
     
     @ViewBuilder
     private func createEpisodeCell(episode: TMDBEpisode, index: Int) -> some View {
-        let episodeKey = "episode_\(episode.seasonNumber)_\(episode.episodeNumber)"
-        let lastPlayedTime = UserDefaults.standard.double(forKey: "lastPlayedTime_\(episodeKey)")
-        let totalTime = UserDefaults.standard.double(forKey: "totalTime_\(episodeKey)")
-        let progress = totalTime > 0 ? lastPlayedTime / totalTime : 0
-        let isSelected = selectedEpisodeForSearch?.id == episode.id
-        
-        EpisodeCell(
-            episode: episode,
-            progress: progress,
-            isSelected: isSelected,
-            onTap: { episodeTapAction(episode: episode) },
-            onMarkWatched: { markAsWatched(episode: episode) },
-            onResetProgress: { resetProgress(episode: episode) }
-        )
+        if let tvShow = tvShow {
+            let progress = ProgressManager.shared.getEpisodeProgress(
+                showId: tvShow.id,
+                seasonNumber: episode.seasonNumber,
+                episodeNumber: episode.episodeNumber
+            )
+            let isSelected = selectedEpisodeForSearch?.id == episode.id
+            
+            EpisodeCell(
+                episode: episode,
+                showId: tvShow.id,
+                progress: progress,
+                isSelected: isSelected,
+                onTap: { episodeTapAction(episode: episode) },
+                onMarkWatched: { markAsWatched(episode: episode) },
+                onResetProgress: { resetProgress(episode: episode) }
+            )
+        } else {
+            EmptyView()
+        }
     }
     
     private func episodeTapAction(episode: TMDBEpisode) {
@@ -311,15 +322,21 @@ struct TVShowSeasonsSection: View {
     }
     
     private func markAsWatched(episode: TMDBEpisode) {
-        let episodeKey = "episode_\(episode.seasonNumber)_\(episode.episodeNumber)"
-        UserDefaults.standard.set(1.0, forKey: "lastPlayedTime_\(episodeKey)")
-        UserDefaults.standard.set(1.0, forKey: "totalTime_\(episodeKey)")
+        guard let tvShow = tvShow else { return }
+        ProgressManager.shared.markEpisodeAsWatched(
+            showId: tvShow.id,
+            seasonNumber: episode.seasonNumber,
+            episodeNumber: episode.episodeNumber
+        )
     }
     
     private func resetProgress(episode: TMDBEpisode) {
-        let episodeKey = "episode_\(episode.seasonNumber)_\(episode.episodeNumber)"
-        UserDefaults.standard.set(0.0, forKey: "lastPlayedTime_\(episodeKey)")
-        UserDefaults.standard.set(0.0, forKey: "totalTime_\(episodeKey)")
+        guard let tvShow = tvShow else { return }
+        ProgressManager.shared.resetEpisodeProgress(
+            showId: tvShow.id,
+            seasonNumber: episode.seasonNumber,
+            episodeNumber: episode.episodeNumber
+        )
     }
     
     private func loadSeasonDetails(tvShowId: Int, season: TMDBSeason) {
@@ -338,5 +355,23 @@ struct TVShowSeasonsSection: View {
                 }
             }
         }
+    }
+    
+    private func getAgeRating(from contentRatings: TMDBContentRatings?) -> String? {
+        guard let contentRatings = contentRatings else { return nil }
+        
+        for rating in contentRatings.results {
+            if rating.iso31661 == "US" && !rating.rating.isEmpty {
+                return rating.rating
+            }
+        }
+        
+        for rating in contentRatings.results {
+            if !rating.rating.isEmpty {
+                return rating.rating
+            }
+        }
+        
+        return nil
     }
 }

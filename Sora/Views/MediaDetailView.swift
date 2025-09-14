@@ -25,10 +25,12 @@ struct MediaDetailView: View {
     @State private var synopsis: String = ""
     @State private var isBookmarked: Bool = false
     @State private var showingSearchResults = false
+    @State private var showingAddToCollection = false
     @State private var selectedEpisodeForSearch: TMDBEpisode?
     @State private var romajiTitle: String?
     
     @StateObject private var serviceManager = ServiceManager.shared
+    @ObservedObject private var libraryManager = LibraryManager.shared
     
     @Environment(\.presentationMode) var presentationMode
     @Environment(\.verticalSizeClass) private var verticalSizeClass
@@ -66,16 +68,32 @@ struct MediaDetailView: View {
             navigationOverlay
         }
         .navigationBarHidden(true)
+        .gesture(
+            DragGesture()
+                .onEnded { value in
+                    if value.translation.width > 100 && abs(value.translation.height) < 50 {
+                        presentationMode.wrappedValue.dismiss()
+                    }
+                }
+        )
         .onAppear {
             loadMediaDetails()
+            updateBookmarkStatus()
+        }
+        .onChange(of: libraryManager.collections) { _ in
+            updateBookmarkStatus()
         }
         .sheet(isPresented: $showingSearchResults) {
             ModulesSearchResultsSheet(
                 mediaTitle: searchResult.displayTitle,
                 originalTitle: romajiTitle,
                 isMovie: searchResult.isMovie,
-                selectedEpisode: selectedEpisodeForSearch
+                selectedEpisode: selectedEpisodeForSearch,
+                tmdbId: searchResult.id
             )
+        }
+        .sheet(isPresented: $showingAddToCollection) {
+            AddToCollectionView(searchResult: searchResult)
         }
     }
     
@@ -128,22 +146,13 @@ struct MediaDetailView: View {
                         .font(.system(size: 16, weight: .medium))
                         .foregroundColor(.primary)
                         .frame(width: 32, height: 32)
-                        .background(Color.black.opacity(0.3))
-                        .clipShape(Circle())
+                        .background(
+                            RoundedRectangle(cornerRadius: 16)
+                                .fill(.ultraThinMaterial.opacity(0.9))
+                        )
                 }
                 
                 Spacer()
-                
-                Button(action: {
-                    // TODO: Add menu functionality
-                }) {
-                    Image(systemName: "ellipsis")
-                        .font(.system(size: 16, weight: .medium))
-                        .foregroundColor(.primary)
-                        .frame(width: 32, height: 32)
-                        .background(Color.black.opacity(0.3))
-                        .clipShape(Circle())
-                }
             }
             .padding(.horizontal)
             
@@ -159,7 +168,7 @@ struct MediaDetailView: View {
                 contentContainer
             }
         }
-        .ignoresSafeArea(edges: .top)
+        .ignoresSafeArea(edges: [.top, .leading, .trailing])
     }
     
     @ViewBuilder
@@ -312,6 +321,24 @@ struct MediaDetailView: View {
                     .foregroundColor(isBookmarked ? .yellow : .primary)
                     .cornerRadius(8)
             }
+            
+            Button(action: {
+                showingAddToCollection = true
+            }) {
+                Image(systemName: "plus")
+                    .font(.title2)
+                    .frame(width: 42, height: 42)
+                    .background(
+                        RoundedRectangle(cornerRadius: 12)
+                            .fill(Color.black.opacity(0.2))
+                            .background(
+                                RoundedRectangle(cornerRadius: 12)
+                                    .fill(.ultraThinMaterial)
+                            )
+                    )
+                    .foregroundColor(.primary)
+                    .cornerRadius(8)
+            }
         }
         .padding(.horizontal)
     }
@@ -331,9 +358,13 @@ struct MediaDetailView: View {
     
     private func toggleBookmark() {
         withAnimation(.easeInOut(duration: 0.2)) {
-            isBookmarked.toggle()
+            libraryManager.toggleBookmark(for: searchResult)
+            updateBookmarkStatus()
         }
-        // TODO: Implement actual bookmark functionality
+    }
+    
+    private func updateBookmarkStatus() {
+        isBookmarked = libraryManager.isBookmarked(searchResult)
     }
     
     private func searchInServices() {
