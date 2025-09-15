@@ -26,30 +26,30 @@ struct ServicesView: View {
         .navigationBarItems(trailing:
             HStack(spacing: 16) {
                 Button(action: {
-                    showAddModuleAlert()
+                    showAddServiceAlert()
                 }) {
                     Image(systemName: "plus")
                         .resizable()
                         .frame(width: 20, height: 20)
                         .padding(5)
                 }
-                .accessibilityLabel(NSLocalizedString("Add Module", comment: ""))
+                .accessibilityLabel(NSLocalizedString("Add Service", comment: ""))
             }
         )
     }
 
-    func showAddModuleAlert() {
+    func showAddServiceAlert() {
         let pasteboardString = UIPasteboard.general.string ?? ""
 
         if !pasteboardString.isEmpty {
             let clipboardAlert = UIAlertController(
                 title: "Clipboard Detected",
-                message: "We found some text in your clipboard. Would you like to use it as the module URL?",
+                message: "We found some text in your clipboard. Would you like to use it as the service URL?",
                 preferredStyle: .alert
             )
             
             clipboardAlert.addAction(UIAlertAction(title: "Use Clipboard", style: .default, handler: { _ in
-                self.displayModuleView(url: pasteboardString)
+                self.displayServiceView(url: pasteboardString)
             }))
             
             clipboardAlert.addAction(UIAlertAction(title: "Enter Manually", style: .default, handler: { _ in
@@ -68,19 +68,19 @@ struct ServicesView: View {
 
     func showManualUrlAlert() {
         let alert = UIAlertController(
-            title: "Add Module",
-            message: "Enter the URL of the module file",
+            title: "Add Service",
+            message: "Enter the URL of the service file",
             preferredStyle: .alert
         )
         
         alert.addTextField { textField in
-            textField.placeholder = "https://real.url/module.json"
+            textField.placeholder = "https://real.url/service.json"
         }
         
         alert.addAction(UIAlertAction(title: "Cancel", style: .cancel, handler: nil))
         alert.addAction(UIAlertAction(title: "Add", style: .default, handler: { _ in
             if let url = alert.textFields?.first?.text, !url.isEmpty {
-                self.displayModuleView(url: url)
+                self.displayServiceView(url: url)
             }
         }))
         
@@ -90,11 +90,11 @@ struct ServicesView: View {
         }
     }
 
-    func displayModuleView(url: String) {
+    func displayServiceView(url: String) {
         DispatchQueue.main.async {
-            let addModuleView = ModuleAdditionSettingsView(moduleUrl: url)
-                .environmentObject(self.moduleManager)
-            let hostingController = UIHostingController(rootView: addModuleView)
+            let addServiceView = ServiceeAdditionSettingsView(serviceUrl: url)
+                .environmentObject(self.serviceManager)
+            let hostingController = UIHostingController(rootView: addServiceView)
             
             if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
                let window = windowScene.windows.first {
